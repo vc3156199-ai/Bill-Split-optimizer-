@@ -1,1 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bill Split Optimizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 
+<body>
+
+<h1>Bill Split Optimizer</h1>
+
+<form action="/calculate" method="POST">
+
+    <input name="people" placeholder="Rahul, Amit, Vishal" required>
+
+    <h3>Expense 1</h3>
+
+    <input name="description" placeholder="Food" required>
+    <input name="payer" placeholder="Who paid?" required>
+    <input name="amount" type="number" placeholder="Amount" required>
+
+    <br><br>
+
+    <button>Calculate Bill</button>
+
+</form>
+
+
+{% if error %}
+<p>{{ error }}</p>
+{% endif %}
+
+
+{% if total is defined %}
+
+<h2>Bill Summary</h2>
+
+<p>Total Bill: ₹{{ total }}</p>
+<p>Each Person: ₹{{ share }}</p>
+
+<h3>Payment Summary</h3>
+
+<table border="1">
+<tr>
+    <th>Person</th>
+    <th>Paid</th>
+    <th>Balance</th>
+    <th>Status</th>
+</tr>
+
+{% for x in summary %}
+<tr>
+    <td>{{ x[0] }}</td>
+    <td>₹{{ x[1] }}</td>
+    <td>₹{{ x[3] }}</td>
+    <td>{{ x[4] }}</td>
+</tr>
+{% endfor %}
+
+</table>
+
+
+<h3>Optimized Settlements</h3>
+
+{% for x in settlements %}
+<p>
+    {{ x[0] }} pays {{ x[1] }} ₹{{ x[2] }}
+</p>
+{% endfor %}
+
+{% endif %}
+
+</body>
+  </html>
