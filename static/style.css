@@ -1,73 +1,4 @@
-body {
-    font-family: Arial, sans-serif;
-    background: #f2f4f8;
-    margin: 0;
-}
-
-.container {
-    width: 90%;
-    max-width: 900px;
-    margin: 40px auto;
-}
-
-h1 {
-    text-align: center;
-    color: #333;
-}
-
-.subtitle {
-    text-align: center;
-    color: #777;
-    margin-bottom: 30px;
-}
-
-.box {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 3px 12px #ddd;
-}
-
-h2 {
-    margin-top: 0;
-}
-
-.expense {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-input {
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 7px;
-    flex: 1;
-}
-
-button {
-    border: 0;
-    border-radius: 7px;
-    padding: 11px 15px;
-    cursor: pointer;
-}
-
-.expense button {
-    background: #ffe5e5;
-}
-
-.add {
-    background: #eeeeff;
-    color: #4d4dff;
-    width: 100%;
-    margin: 10px 0;
-}
-
-.calculate {
-    background: #5555e8;
-    color: white;
-    width: 100%;
+width: 100%;
 }
 
 .summary {
@@ -126,4 +57,5 @@ th, td {
     .container {
         margin: 20px auto;
     }
-  }
+        }
+        
