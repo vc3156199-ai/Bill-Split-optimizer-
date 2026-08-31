@@ -1,41 +1,71 @@
 from flask import Flask, render_template, request
+from bill_split import BillSplitter, valid_name, valid_amount, save_expense
 
 app = Flask(__name__)
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
 def home():
-    result = None
+    return render_template("index.html")
 
-    if request.method == "POST":
-        names = request.form.getlist("name")
+
+@app.route("/calculate", methods=["POST"])
+def calculate():
+
+    try:
+        people = [
+            p.strip()
+            for p in request.form["people"].split(",")
+            if valid_name(p.strip())
+        ]
+
+        if len(people) < 2:
+            return render_template(
+                "index.html",
+                error="Enter at least 2 valid names."
+            )
+
+        descriptions = request.form.getlist("description")
+        payers = request.form.getlist("payer")
         amounts = request.form.getlist("amount")
 
         expenses = []
-        total = 0
 
-        for name, amount in zip(names, amounts):
-            if name and amount:
-                amount = float(amount)
-                expenses.append({
-                    "name": name,
-                    "amount": amount
-                })
-                total += amount
+        for i in range(len(payers)):
 
-        if expenses:
-            share = total / len(expenses)
+            if payers[i] in people and valid_amount(amounts[i]):
 
-            for person in expenses:
-                person["balance"] = person["amount"] - share
+                expense = (
+                    payers[i],
+                    descriptions[i],
+                    float(amounts[i])
+                )
 
-            result = {
-                "expenses": expenses,
-                "total": total,
-                "share": share
-            }
+                expenses.append(expense)
+                save_expense(expense)
 
-    return render_template("index.html", result=result)
+        if not expenses:
+            return render_template(
+                "index.html",
+                error="Enter at least one valid expense."
+            )
+
+        bill = BillSplitter(people, expenses)
+
+        return render_template(
+            "index.html",
+            people=people,
+            total=round(sum(bill.paid.values()), 2),
+            share=round(bill.share(), 2),
+            summary=bill.summary(),
+            settlements=bill.settlements()
+        )
+
+    except Exception:
+        return render_template(
+            "index.html",
+            error="Please check your input."
+        )
 
 
 if __name__ == "__main__":
