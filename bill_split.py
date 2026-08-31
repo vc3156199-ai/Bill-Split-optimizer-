@@ -1,170 +1,71 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Bill Split Optimizer</title>
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
-</head>
-
-<body>
-
-<div class="container">
-
-    <h1>💰 Bill Split Optimizer</h1>
-    <p class="subtitle">Split your expenses easily</p>
-
-    <div class="box">
-
-        <h2>Add Expense</h2>
-
-        <form method="POST">
-
-            <div id="expenses">
-
-                <div class="expense">
-                    <input type="text"
-                           name="name"
-                           placeholder="Person name"
-                           required>
-
-                    <input type="number"
-                           name="amount"
-                           placeholder="Amount"
-                           required>
-
-                    <button type="button"
-                            onclick="removeExpense(this)">
-                        ✕
-                    </button>
-                </div>
-
-            </div>
-
-            <button type="button"
-                    class="add"
-                    onclick="addExpense()">
-                + Add Expense
-            </button>
-
-            <button type="submit"
-                    class="calculate">
-                Calculate Split
-            </button>
-
-        </form>
-
-    </div>
+import re
 
 
-    {% if result %}
+class BillSplitter:
+    def __init__(self, people, expenses):
+        self.people = people
+        self.expenses = expenses
+        self.paid = {p: 0 for p in people}
 
-    <div class="summary">
+        for payer, description, amount in expenses:
+            self.paid[payer] += amount
 
-        <div>
-            <span>Total Bill</span>
-            <b>₹{{ "%.2f"|format(result.total) }}</b>
-        </div>
+    def share(self):
+        return sum(self.paid.values()) / len(self.people)
 
-        <div>
-            <span>People</span>
-            <b>{{ result.expenses|length }}</b>
-        </div>
+    def balance(self):
+        s = self.share()
+        return {p: round(self.paid[p] - s, 2) for p in self.people}
 
-        <div>
-            <span>Each Person</span>
-            <b>₹{{ "%.2f"|format(result.share) }}</b>
-        </div>
+    def summary(self):
+        b = self.balance()
+        s = self.share()
 
-    </div>
+        return [
+            (p, round(self.paid[p], 2), round(s, 2), b[p],
+             "Receive" if b[p] > 0 else "Pay" if b[p] < 0 else "Settled")
+            for p in self.people
+        ]
 
+    def settlements(self):
+        b = self.balance()
 
-    <div class="box">
+        debtors = [[p, -v] for p, v in b.items() if v < 0]
+        creditors = [[p, v] for p, v in b.items() if v > 0]
 
-        <h2>Settlement</h2>
+        result = []
+        i = j = 0
 
-        <table>
+        while i < len(debtors) and j < len(creditors):
+            amount = round(min(debtors[i][1], creditors[j][1]), 2)
 
-            <tr>
-                <th>Person</th>
-                <th>Paid</th>
-                <th>Balance</th>
-            </tr>
+            result.append(
+                (debtors[i][0], creditors[j][0], amount)
+            )
 
-            {% for person in result.expenses %}
+            debtors[i][1] -= amount
+            creditors[j][1] -= amount
 
-            <tr>
-                <td>{{ person.name }}</td>
+            if debtors[i][1] <= 0.01:
+                i += 1
 
-                <td>
-                    ₹{{ "%.2f"|format(person.amount) }}
-                </td>
+            if creditors[j][1] <= 0.01:
+                j += 1
 
-                <td>
-                    {% if person.balance > 0 %}
-                        <span class="receive">
-                            Gets ₹{{ "%.2f"|format(person.balance) }}
-                        </span>
-                    {% elif person.balance < 0 %}
-                        <span class="owe">
-                            Pays ₹{{ "%.2f"|format(person.balance|abs) }}
-                        </span>
-                    {% else %}
-                        Settled
-                    {% endif %}
-                </td>
-            </tr>
-
-            {% endfor %}
-
-        </table>
-
-    </div>
-
-    {% endif %}
-
-</div>
+        return result
 
 
-<script>
-
-function addExpense() {
-
-    let div = document.createElement("div");
-
-    div.className = "expense";
-
-    div.innerHTML = `
-        <input type="text"
-               name="name"
-               placeholder="Person name"
-               required>
-
-        <input type="number"
-               name="amount"
-               placeholder="Amount"
-               required>
-
-        <button type="button"
-                onclick="removeExpense(this)">
-            ✕
-        </button>
-    `;
-
-    document.getElementById("expenses").appendChild(div);
-}
+def valid_name(name):
+    return bool(re.match(r"^[A-Za-z ]+$", name))
 
 
-function removeExpense(button) {
+def valid_amount(amount):
+    try:
+        return float(amount) > 0
+    except ValueError:
+        return False
 
-    let rows = document.querySelectorAll(".expense");
 
-    if (rows.length > 1) {
-        button.parentElement.remove();
-    }
-
-}
-
-</script>
-
-</body>
-</html>
+def save_expense(expense):
+    with open("data/expenses.txt", "a") as f:
+        f.write(" | ".join(map(str, expense)) + "\n")
