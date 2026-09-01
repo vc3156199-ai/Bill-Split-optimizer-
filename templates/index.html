@@ -1,74 +1,250 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Bill Split Optimizer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
-<h1>Bill Split Optimizer</h1>
-
-<form action="/calculate" method="POST">
-
-    <input name="people" placeholder="Rahul, Amit, Vishal" required>
-
-    <h3>Expense 1</h3>
-
-    <input name="description" placeholder="Food" required>
-    <input name="payer" placeholder="Who paid?" required>
-    <input name="amount" type="number" placeholder="Amount" required>
-
-    <br><br>
-
-    <button>Calculate Bill</button>
-
-</form>
+<header>
+    <h1>Bill Split Optimizer</h1>
+    <p>Split bills easily and fairly with your friends.</p>
+</header>
 
 
-{% if error %}
-<p>{{ error }}</p>
-{% endif %}
+<main>
+
+    <div class="top-grid">
+
+        <!-- ADD EXPENSE -->
+
+        <section class="card">
+
+            <h2>Add Expense</h2>
+
+            <form method="POST">
+
+                <label>Amount (₹)</label>
+                <input type="number"
+                       name="amount"
+                       step="0.01"
+                       placeholder="e.g. 1500"
+                       required>
+
+                <label>Description</label>
+                <input type="text"
+                       name="description"
+                       placeholder="e.g. Dinner"
+                       required>
+
+                <label>Paid By</label>
+                <input type="text"
+                       name="paid_by"
+                       placeholder="e.g. Rahul"
+                       required>
+
+                <label>People Sharing</label>
+                <input type="text"
+                       name="people"
+                       placeholder="Rahul, Priya, Amit"
+                       required>
+
+                <button type="submit">Add Expense</button>
+
+                <small>
+                    Enter names separated by commas.
+                </small>
+
+            </form>
+
+        </section>
 
 
-{% if total is defined %}
+        <!-- OVERVIEW -->
 
-<h2>Bill Summary</h2>
+        <section class="card">
 
-<p>Total Bill: ₹{{ total }}</p>
-<p>Each Person: ₹{{ share }}</p>
+            <h2>Bill Overview</h2>
 
-<h3>Payment Summary</h3>
+            <div class="overview">
 
-<table border="1">
-<tr>
-    <th>Person</th>
-    <th>Paid</th>
-    <th>Balance</th>
-    <th>Status</th>
-</tr>
+                <div>
+                    <span>Total Bill</span>
+                    <strong>₹ {{ "%.2f"|format(total) }}</strong>
+                </div>
 
-{% for x in summary %}
-<tr>
-    <td>{{ x[0] }}</td>
-    <td>₹{{ x[1] }}</td>
-    <td>₹{{ x[3] }}</td>
-    <td>{{ x[4] }}</td>
-</tr>
-{% endfor %}
+                <div>
+                    <span>People</span>
+                    <strong>{{ people_count }}</strong>
+                </div>
 
-</table>
+                <div>
+                    <span>Per Person</span>
+                    <strong>₹ {{ "%.2f"|format(per_person) }}</strong>
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
 
 
-<h3>Optimized Settlements</h3>
+    <!-- ALERTS -->
 
-{% for x in settlements %}
-<p>
-    {{ x[0] }} pays {{ x[1] }} ₹{{ x[2] }}
-</p>
-{% endfor %}
+    <section class="card">
 
-{% endif %}
+        <h2>Payment Alerts</h2>
+
+        {% if expenses %}
+
+            <div class="alert">
+                <strong>✓ Bill calculation updated</strong>
+                <p>
+                    Total bill is ₹ {{ "%.2f"|format(total) }}
+                    for {{ people_count }} people.
+                </p>
+            </div>
+
+        {% else %}
+
+            <p class="empty">
+                No expenses added yet.
+            </p>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- SETTLEMENT -->
+
+    <section class="card">
+
+        <h2>Settlement Suggestions</h2>
+
+        {% if balances %}
+
+            {% for person, balance in balances.items() %}
+
+                {% if balance > 0.01 %}
+
+                    <div class="success">
+                        <strong>{{ person }}</strong>
+                        should receive
+                        <strong>₹ {{ "%.2f"|format(balance) }}</strong>
+                    </div>
+
+                {% elif balance < -0.01 %}
+
+                    <div class="warning">
+                        <strong>{{ person }}</strong>
+                        should pay
+                        <strong>₹ {{ "%.2f"|format(-balance) }}</strong>
+                    </div>
+
+                {% endif %}
+
+            {% endfor %}
+
+        {% else %}
+
+            <p class="empty">
+                Add expenses to see settlement suggestions.
+            </p>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- ALL EXPENSES -->
+
+    <section class="card">
+
+        <div class="table-heading">
+
+            <h2>All Expenses</h2>
+
+            <a href="/clear"
+               onclick="return confirm('Clear all expenses?')">
+                Clear All Data
+            </a>
+
+        </div>
+
+
+        {% if expenses %}
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Amount</th>
+                        <th>Paid By</th>
+                        <th>Description</th>
+                        <th>People</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for expense in expenses %}
+
+                    <tr>
+
+                        <td>
+                            ₹ {{ "%.2f"|format(expense.amount) }}
+                        </td>
+
+                        <td>
+                            <span class="tag">
+                                {{ expense.paid_by }}
+                            </span>
+                        </td>
+
+                        <td>
+                            {{ expense.description }}
+                        </td>
+
+                        <td>
+                            {{ expense.people|join(", ") }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+            <p class="empty">
+                No expenses have been added.
+            </p>
+
+        {% endif %}
+
+    </section>
+
+</main>
+
+
+<footer>
+    Bill Split Optimizer | Python Project
+</footer>
 
 </body>
-  </html>
+</html>
