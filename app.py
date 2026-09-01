@@ -1,42 +1,106 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 
 app = Flask(__name__)
 
 
+def calculate_total(amounts):
+    total = 0
+
+    for amount in amounts:
+        total = total + amount
+
+    return total
+
+
+def calculate_balances(names, amounts):
+    total = calculate_total(amounts)
+
+    fair_share = total / len(names)
+
+    balances = {}
+
+    for i in range(len(names)):
+        balances[names[i]] = amounts[i] - fair_share
+
+    return total, fair_share, balances
+
+
+def optimize_split(balances):
+
+    debtors = []
+    creditors = []
+
+    for name in balances:
+
+        if balances[name] < 0:
+            debtors.append([name, -balances[name]])
+
+        elif balances[name] > 0:
+            creditors.append([name, balances[name]])
+
+    settlements = []
+
+    i = 0
+    j = 0
+
+    while i < len(debtors) and j < len(creditors):
+
+        debtor = debtors[i]
+        creditor = creditors[j]
+
+        amount = min(debtor[1], creditor[1])
+
+        settlements.append(
+            debtor[0] + " pays Rs. " +
+            str(round(amount, 2)) +
+            " to " + creditor[0]
+        )
+
+        debtor[1] = debtor[1] - amount
+        creditor[1] = creditor[1] - amount
+
+        if debtor[1] <= 0.01:
+            i = i + 1
+
+        if creditor[1] <= 0.01:
+            j = j + 1
+
+    return settlements
+
+
 @app.route("/", methods=["GET", "POST"])
 def home():
-    result = None
 
     if request.method == "POST":
+
         names = request.form.getlist("name")
-        amounts = request.form.getlist("amount")
 
-        expenses = []
-        total = 0
+        amounts = []
 
-        for name, amount in zip(names, amounts):
-            if name and amount:
-                amount = float(amount)
-                expenses.append({
-                    "name": name,
-                    "amount": amount
-                })
-                total += amount
+        for value in request.form.getlist("amount"):
 
-        if expenses:
-            share = total / len(expenses)
+            try:
+                amounts.append(float(value))
 
-            for person in expenses:
-                person["balance"] = person["amount"] - share
+            except:
+                return redirect("/")
 
-            result = {
-                "expenses": expenses,
-                "total": total,
-                "share": share
-            }
+        total, fair_share, balances = calculate_balances(
+            names, amounts
+        )
 
-    return render_template("index.html", result=result)
+        settlements = optimize_split(balances)
+
+        return render_template(
+            "index.html",
+            total=total,
+            fair_share=fair_share,
+            balances=balances,
+            settlements=settlements
+        )
+
+    return render_template("index.html")
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
